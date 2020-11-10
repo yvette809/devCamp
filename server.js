@@ -5,6 +5,11 @@ const dotenv = require("dotenv")
 const mongoose = require ("mongoose")
 const logger = require ("./src/middleware/logger")
 const morgan = require("morgan")
+const {
+  notFoundHandler,
+  badRequestHandler,
+  genericErrorHandler,
+} = require("./src/middleware/error");
 const bootcampRouter = require("./src/routes/bootcamps/bootcamp")
 
 dotenv.config()
@@ -20,6 +25,12 @@ if(process.env.NODE_ENV==='development'){
 
 // routes
 app.use("/api/v1/bootcamps", bootcampRouter)
+
+//error handlers
+// Error handler middleware
+app.use(badRequestHandler);
+app.use(notFoundHandler);
+app.use(genericErrorHandler);
 
 const port = process.env.PORT || 4020
 
