@@ -1,21 +1,75 @@
 const express  = require ("express")
 const BootcampModel = require("./bootcampSchema")
 const bootcampRouter = express.Router()
+const q2m = require("query-to-mongo")
+const geocoder = require("../../utils/geocoder")
 const bootcampModel = require("./bootcampSchema")
 
 
 // get all bootcamps
-bootcampRouter.get("/", async(req,res,next)=>{
-    try {
-        const bootcamps = await BootcampModel.find()
-        res.status(200).json({success:true, count:bootcamps.length, data:bootcamps})
+// bootcampRouter.get("/", async(req,res,next)=>{
+//     try {
+//         const bootcamps = await BootcampModel.find()
+//         res.status(200).json({success:true, count:bootcamps.length, data:bootcamps})
         
+//     } catch (error) {
+//        next(error)
+        
+//     }
+
+// })
+
+// get all bootcamps within radius
+bootcampRouter.get("/radius/:zipcode/:distance", async(req,res,next)=>{
+    try {
+        // req.params is the url
+       const {zipcode,distance} = req.params;
+        // get lat/lng from geocoder
+        const loc = await geocoder.geocode(zipcode)
+        const lat = loc[0].latitude
+        const long = loc[0].longitude
+
+        // calc radius using radians
+        // divide dist by radius of earth
+        // Earth Radius = 3,963 mi/6,378km
+
+        const radius = distance/3963
+        const bootcamps= await BootcampModel.find({
+            location: { $geoWithin: { $centerSphere: [[lng, lat], radius] } }
+        })
+        res.status(200).json({
+            success:true,
+            count:bootcamps.length,
+            data:bootcamps
+        })
     } catch (error) {
        next(error)
         
     }
 
 })
+
+// get bootcamps with pagination
+bootcampRouter.get('/', async(req,res,next)=>{
+    try{
+        const query = q2m(req.query)
+        const bootcamps = await bootcampModel.find(query.criteria, query.options.fields)
+        .skip(query.options.skip)
+        .limit(query.options.limit)
+        .sort(query.options.sort)
+
+        res.send({
+            data: bootcamps,
+            total: bootcamps.length
+        })
+
+    }catch(error){
+        next(error)
+    }
+   
+})
+
+
 
 
 // get single bootcamp
